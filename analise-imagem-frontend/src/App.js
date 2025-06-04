@@ -7,36 +7,60 @@ function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const toBase64 = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file); 
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
-
   const handleUpload = async () => {
-    if (!image) return;
+    if (!image) {
+      setResult({ error: 'Nenhuma imagem selecionada' });
+      return;
+    }
+
+    // Validação de tipo e tamanho
+    if (!['image/jpeg', 'image/png'].includes(image.type)) {
+      setResult({ error: 'Apenas imagens JPEG ou PNG são permitidas' });
+      return;
+    }
+    if (image.size > 5 * 1024 * 1024) { // Limite de 5MB
+      setResult({ error: 'A imagem excede o tamanho máximo de 5MB' });
+      return;
+    }
 
     setLoading(true);
-    try {
-      const base64Image = await toBase64(image);
 
-      const response = await axios.post(
-        'https://k52y4cvix1.execute-api.us-east-1.amazonaws.com/Stage-1/upload',
-        { image: base64Image },
-        {
-          headers: {
-            'Content-Type': 'application/json',
+    // Converter a imagem para Base64
+    const reader = new FileReader();
+    reader.readAsDataURL(image);
+    reader.onload = async () => {
+      const base64Image = reader.result.split(',')[1]; // Remove o prefixo
+
+      try {
+        const response = await axios.post(
+          'https://k52y4cvix1.execute-api.us-east-1.amazonaws.com/Stage-1/upload',
+          {
+            image_data: base64Image,
+            filename: image.name,
           },
-        }
-      );
-      setResult(response.data);
-    } catch (error) {
-      console.error('Erro ao enviar imagem:', error);
-      setResult({ error: 'Falha na análise' });
-    }
-    setLoading(false);
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        setResult(response.data);
+      } catch (error) {
+        console.error('Erro ao enviar imagem:', error);
+        setResult({
+          error: error.response?.data?.message ||
+            error.message ||
+            'Falha ao enviar a imagem. Verifique o console para mais detalhes.',
+        });
+      }
+      setLoading(false);
+    };
+
+    reader.onerror = () => {
+      console.error('Erro ao converter imagem para Base64');
+      setResult({ error: 'Erro ao processar a imagem' });
+      setLoading(false);
+    };
   };
 
   return (
