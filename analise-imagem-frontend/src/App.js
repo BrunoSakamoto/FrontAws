@@ -7,20 +7,27 @@ function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const toBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file); 
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+
   const handleUpload = async () => {
     if (!image) return;
 
-    const formData = new FormData();
-    formData.append('file', image);
-
     setLoading(true);
     try {
+      const base64Image = await toBase64(image);
+
       const response = await axios.post(
-        '-------------------', // link do api gateway
-        formData,
+        'https://k52y4cvix1.execute-api.us-east-1.amazonaws.com/Stage-1/upload',
+        { image: base64Image },
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'Content-Type': 'application/json',
           },
         }
       );
