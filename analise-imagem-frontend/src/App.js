@@ -67,16 +67,18 @@ function App() {
     <div className="App">
       <h1>Análise de Imagem com AWS</h1>
 
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(e) => setImage(e.target.files[0])}
-      />
+      <div className="upload-container">
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setImage(e.target.files[0])}
+        />
 
-      <button onClick={handleUpload} disabled={loading}>
-        {loading ? 'Analisando...' : 'Enviar Imagem'}
-      </button>
-
+        <button onClick={handleUpload} disabled={loading}>
+          {loading ? 'Analisando...' : 'Enviar Imagem'}
+        </button>
+      </div>
+      
       {result && (
         <div className="resultado">
           <h3>Resultado:</h3>
