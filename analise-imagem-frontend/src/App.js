@@ -18,18 +18,17 @@ function App() {
       setResult({ error: 'Apenas imagens JPEG ou PNG são permitidas' });
       return;
     }
-    if (image.size > 5 * 1024 * 1024) { // Limite de 5MB
+    if (image.size > 5 * 1024 * 1024) {
       setResult({ error: 'A imagem excede o tamanho máximo de 5MB' });
       return;
     }
 
     setLoading(true);
 
-    // Converter a imagem para Base64
     const reader = new FileReader();
     reader.readAsDataURL(image);
     reader.onload = async () => {
-      const base64Image = reader.result.split(',')[1]; // Remove o prefixo
+      const base64Image = reader.result.split(',')[1];
 
       try {
         const response = await axios.post(
@@ -44,11 +43,27 @@ function App() {
             },
           }
         );
-        setResult(response.data);
+
+        console.log('Resposta bruta:', response.data);
+
+        // Se a resposta tiver um body no formato JSON como string:
+        let parsedResult = response.data;
+        if (typeof response.data.body === 'string') {
+          try {
+            parsedResult = JSON.parse(response.data.body);
+          } catch (e) {
+            console.warn('Falha ao parsear o body:', e);
+          }
+        }
+
+        console.log('Body parseado:', parsedResult);
+
+        setResult(parsedResult);
       } catch (error) {
         console.error('Erro ao enviar imagem:', error);
         setResult({
-          error: error.response?.data?.message ||
+          error:
+            error.response?.data?.message ||
             error.message ||
             'Falha ao enviar a imagem. Verifique o console para mais detalhes.',
         });
@@ -78,11 +93,52 @@ function App() {
           {loading ? 'Analisando...' : 'Enviar Imagem'}
         </button>
       </div>
-      
+
       {result && (
         <div className="resultado">
-          <h3>Resultado:</h3>
-          <pre>{JSON.stringify(result, null, 2)}</pre>
+          {result.error && (
+            <div className="erro">
+              <h3>Erro:</h3>
+              <p>{result.error}</p>
+            </div>
+          )}
+
+          {result.message && <h3>{result.message}</h3>}
+
+          {result.labels && (
+            <div className="tags-geradas">
+              <h3>Tags Geradas:</h3>
+              <ul>
+                {result.labels.map((label, index) => (
+                  <li key={index}>{label}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {result.mysql_table && (
+            <div className="query-realizada">
+              <h3>Query Realizada (Dados no MySQL):</h3>
+              <table border="1">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>S3 Key</th>
+                    <th>Labels</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.mysql_table.map((record) => (
+                    <tr key={record.id}>
+                      <td>{record.id}</td>
+                      <td>{record.s3_key}</td>
+                      <td>{record.labels.join(', ')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>
